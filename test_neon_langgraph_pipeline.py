@@ -71,7 +71,7 @@ def test_neon_to_langgraph_full_pipeline():
         assert saved_case.decision == final_state["decision"], "Persisted decision does not match final_state!"
         assert "typology_classification" in snapshot, "Missing typology_classification in DB snapshot!"
         assert "dossier" in snapshot, "Missing dossier in DB snapshot!"
-        assert alert_in_db.status == "CLOSED", f"Expected Alert status to be CLOSED, got {alert_in_db.status}"
+        assert alert_in_db.status in ["RESOLVED", "ESCALATED"], f"Expected Alert status to be RESOLVED/ESCALATED, got {alert_in_db.status}"
 
         print("\n✅ COMPLETE PIPELINE & LIFECYCLE VERIFIED SUCCESSFULLY WITH ZERO ERRORS!")
         print("=" * 70)

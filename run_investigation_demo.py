@@ -8,6 +8,7 @@ from app.models.schema import Alert, Customer, Transaction, Account, Beneficiary
 from app.repositories import AlertRepository
 from app.agents.state import create_initial_state_from_neon_alert
 from app.agents.graph import investigation_graph
+from app.auditor import LLMAuditor, generate_audit_docx
 
 class DummySession:
     """Mock database session that swallows commits/writes during safe read-only demo execution."""
@@ -219,8 +220,11 @@ def main():
         if args.live:
             saved_case = db.query(InvestigationCase).filter(InvestigationCase.id == final_state["case_id"]).first()
             if saved_case and saved_case.status == "CLOSED":
-                # Lifecycle completion: Mark original Alert CLOSED AFTER InvestigationCase persistence
-                repo.complete_alert(alert_info["alert_id"])
+                # Lifecycle completion: Mark original Alert RESOLVED/ESCALATED AFTER InvestigationCase persistence
+                final_score = final_state.get("final_risk_score", 0.0)
+                decision = final_state.get("decision", "REVIEW")
+                next_st = "ESCALATED" if decision in ["BLOCK", "REVIEW"] or final_score >= 50 else "RESOLVED"
+                repo.complete_alert(alert_info["alert_id"], new_status=next_st)
 
         # Evidence Summary
         trigger_ev = final_state.get("trigger_evidence") or {}
@@ -298,6 +302,24 @@ def main():
             print(f" Alert remains in DB (alerts table)            : {alert_db.status if alert_db else 'OPEN'}")
             print(f" Database mutation                             : NONE (Read-Only Mode)")
             print(f" Case persisted in DB (investigation_cases)    : {'YES' if case_db else 'NO'}")
+
+        # [12] FINAL LLM AUDIT & REPORT GENERATION
+        print("\n[12] FINAL LLM AUDITOR REVIEW & DOCX REPORT GENERATION")
+        auditor = LLMAuditor()
+        audit_result = auditor.audit_investigation(final_state)
+        report_path = generate_audit_docx(audit_result, final_state, output_dir="reports")
+
+        print("=" * 70)
+        print(" FIN-SPECTRA FINAL INVESTIGATION AUDIT")
+        print(" =====================================")
+        print(f" Alert ID       : {audit_result['alert_id']}")
+        print(f" Case ID        : {audit_result['case_id']}")
+        print(f" Risk Score     : {final_state.get('final_risk_score'):.2f}")
+        print(f" Decision       : {final_state.get('decision')}")
+        print(f" Typology       : {final_state.get('typology_classification')}")
+        print(f" FINAL AUDIT    : {audit_result['audit_conclusion']}")
+        print(f" Audit Report   : {report_path}")
+        print("=" * 70)
 
         print("\n" + "=" * 70)
         print(" PIPELINE DEMONSTRATION COMPLETE")

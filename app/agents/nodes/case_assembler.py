@@ -1,6 +1,8 @@
 import json
 from ..state import InvestigationState
 from ..llm_client import LLMClient
+from ...database import SessionLocal
+from ...models.schema import InvestigationCase
 
 SYSTEM_PROMPT = (
     "You are an expert AML forensic compliance investigator drafting a Suspicious Activity Report (SAR) narrative dossier.\n"
@@ -56,8 +58,6 @@ def case_assembler_node(state: InvestigationState) -> InvestigationState:
             
     # Persist the final state snapshot (including dossier) to Neon PostgreSQL
     try:
-        from ...database import SessionLocal
-        from ...models.schema import InvestigationCase
         db = SessionLocal()
         try:
             case = db.query(InvestigationCase).filter(InvestigationCase.id == state["case_id"]).first()

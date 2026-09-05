@@ -33,7 +33,8 @@ def test_alert_lifecycle_transitions():
         config = {"configurable": {"thread_id": initial_state["case_id"]}}
 
         with patch("app.database.SessionLocal", DummySession), \
-             patch("app.agents.nodes.scoring_node.SessionLocal", DummySession):
+             patch("app.agents.nodes.scoring_node.SessionLocal", DummySession), \
+             patch("app.agents.nodes.case_assembler.SessionLocal", DummySession):
             final_state = investigation_graph.invoke(initial_state, config=config)
 
         db.refresh(initial_db_alert)
@@ -78,13 +79,13 @@ def test_alert_lifecycle_transitions():
         assert persisted_case.status == "CLOSED", f"Expected InvestigationCase status CLOSED, got {persisted_case.status}"
 
         # Complete Alert lifecycle after successful InvestigationCase persistence
-        repo.complete_alert(success_id)
+        repo.complete_alert(success_id, new_status="RESOLVED")
         final_db_alert = db.query(Alert).filter(Alert.alert_id == success_id).first()
-        assert final_db_alert.status == "CLOSED", f"Expected Alert status CLOSED, got {final_db_alert.status}"
+        assert final_db_alert.status in ["RESOLVED", "ESCALATED"], f"Expected Alert status RESOLVED/ESCALATED, got {final_db_alert.status}"
 
         print(f" -> Alert ID: {success_id} | Status in 'alerts' table: {final_db_alert.status}")
         print(f" -> Case ID : {persisted_case.id} | Status in 'investigation_cases' table: {persisted_case.status}")
-        print(" ✓ Full success path verified: Alert = CLOSED and InvestigationCase = CLOSED.")
+        print(" ✓ Full success path verified: Alert = RESOLVED and InvestigationCase = CLOSED.")
 
         print("\n" + "=" * 70)
         print("✅ ALL ALERT LIFECYCLE TESTS PASSED PERFECTLY!")
