@@ -1,12 +1,23 @@
+# Fin-Spectra Phase-2 Minimal Core Dependencies
+
+# Web API Framework
 fastapi>=0.100.0
-uvicorn>=0.23.0
+uvicorn>=0.20.0
+
+# Settings & Data Validation
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
-SQLAlchemy>=2.0.0
+python-dotenv>=1.0.0
+
+# Database & ORM
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Multi-Agent Workflow Engine
+langgraph>=0.2.0
+
+# LLM API Client
 groq>=0.9.0
-langgraph>=0.0.60
-langchain-core>=0.2.0
-scikit-learn>=1.3.0
-networkx>=3.0
-pandas>=2.0.0
+
+# Testing
 pytest>=7.0.0
